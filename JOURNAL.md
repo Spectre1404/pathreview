@@ -51,3 +51,61 @@ score, which is verified by the four currently-failing unit tests in
 *(Pending — Docker Desktop must be started, then `make setup` && `make run`.)*
 
 **Cohort ledger:** [ ] Issue added to cohort ledger
+
+## Week 8 — Reproduce the issue
+
+**Status:** Reproduced reliably and confirmed the root cause. No fix applied yet.
+
+**Where the bug lives:** `ingestion/parsers/skill_extractor.py`, method
+`_detect_languages` (JS/TS block at lines ~173–192). The class defines a
+`JS_TS_KEYWORDS` set at line 30 that `_detect_languages` never references — dead
+code. JS/TS detection fires only on a `.js`/`.ts` filename, `import`/`require`, or
+the literal `package.json`.
+
+**How to reproduce (built-in, no extra files):**
+
+```bash
+PYTHONPATH=. python -m pytest tests/unit/test_skill_extractor.py -q
+```
+
+Result: 4 in-scope tests fail — `test_javascript_detection`,
+`test_text_with_typescript_files`, `test_devops_tool_detection`,
+`test_docker_compose_detection`. (A 5th failure,
+`test_database_technology_detection`, is a pre-existing typo in the test itself —
+line 138 reads `skill_names = [s.name for s in skill_names]`, using the variable
+before it is defined. Out of scope for #148.)
+
+**Observed behavior — actual vs. expected** (extractor run on the exact test inputs):
+
+| Case | Detected now | Should be |
+|------|--------------|-----------|
+| Idiomatic JS (`const`/`require('fs')`/`console.log`) | nothing `[]` | JavaScript |
+| TypeScript (`interface`, `id: string`, `Promise<User>`) | **Python (0.70)** | TypeScript |
+| Dockerfile (`FROM`/`RUN pip install`/`EXPOSE`) | **Python (0.70)** | Docker |
+| docker-compose (`version:`/`services:`/`ports:`) | nothing `[]` | Docker |
+| Control: same JS body but filename `app.js` | JavaScript (0.70) | (narrow path works) |
+
+The control row confirms the diagnosis: strip the `.js` filename and identical code
+detects nothing — detection depends entirely on the narrow filename/literal signals.
+
+**Root-cause mechanisms confirmed (each traced to a specific line):**
+
+1. **Dead constant.** `JS_TS_KEYWORDS` (line 30) is never used by `_detect_languages`,
+   so `const`/`let`/`var`/`function`/`export`/`async` never contribute a signal.
+2. **`require(...)` even slips the narrow path.** The one ES/CJS check,
+   `re.search(r"\b(import|require)\s+", text)` (line 179), requires whitespace after
+   `require`, but idiomatic `require('fs')` has `(` immediately — no match. Hence the
+   first case detects literally nothing.
+3. **TypeScript is mislabeled as Python, not merely missed.** The Python
+   type-annotation regex `:\s*(int|str|float|bool|list|dict)` (line 160) matches
+   `id: string` because `string` starts with `str`, scoring the TS sample as
+   Python (0.70).
+4. **Docker inputs never contain the literal token `docker`.** `_detect_tools`
+   (line 267) does a substring match on `"docker"`; a real Dockerfile/compose file
+   mentions neither, so one is misread as Python (via `requirements.txt`, line 162)
+   and the other detects nothing.
+
+**Scope note:** two of the four target tests (`test_devops_tool_detection`,
+`test_docker_compose_detection`) are about Docker/DevOps detection, not JS/TS. Issue
+#148's title is JS/TS-specific but lists all four as the "done" criteria, so the fix
+is broader than the title implies. Will address in PLAN.md.
