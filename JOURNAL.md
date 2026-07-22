@@ -52,7 +52,33 @@ score, which is verified by the four currently-failing unit tests in
 
 **Cohort ledger:** [ ] Issue added to cohort ledger
 
-## Week 8 — Reproduce the issue
+## Week 8 — Reproduction & solution planning
+
+**Reproduction commit link:**
+https://github.com/Spectre1404/pathreview/commit/232155edb01c956f1cc65002107dab1117e1dd32
+
+**Reproduction summary:**
+Ran the existing `SkillExtractor` on the exact inputs from the four failing unit
+tests via `PYTHONPATH=. python -m pytest tests/unit/test_skill_extractor.py -q`.
+Idiomatic JS detected nothing, TypeScript and a Dockerfile were both mislabeled as
+Python (0.70), and a docker-compose file detected nothing — while the same JS body
+with a `.js` filename was detected, confirming the bug is the missing keyword/syntax
+signals.
+
+**PLAN.md link:**
+https://github.com/Spectre1404/pathreview/blob/fix/148-skill-extractor-js-ts-detection/PLAN.md
+
+**Walkthrough video (recommended):** Not recorded (optional, not graded).
+
+**Blockers or open questions:**
+`make check` / `make test-unit` can't run locally yet — the full `tests/unit` suite
+fails collection on missing deps (e.g. `structlog`) because `make setup`/`.venv`
+isn't done (needs Docker Desktop). I verify against the single target test file for
+now and will attempt `make setup` before the Week 9 PR. Open decision: whether to
+also fix the pre-existing typo in `test_database_technology_detection` (line 138),
+which is unrelated to #148.
+
+### Reproduction detail
 
 **Status:** Reproduced reliably and confirmed the root cause. No fix applied yet.
 
