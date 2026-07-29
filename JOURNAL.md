@@ -135,3 +135,59 @@ detects nothing — detection depends entirely on the narrow filename/literal si
 `test_docker_compose_detection`) are about Docker/DevOps detection, not JS/TS. Issue
 #148's title is JS/TS-specific but lists all four as the "done" criteria, so the fix
 is broader than the title implies. Will address in PLAN.md.
+
+## Week 9 — Solution building & PR submission
+
+### Check-in 1 (mid-week)
+
+**Current progress:**
+Implemented the fix in `ingestion/parsers/skill_extractor.py`, completing PLAN.md
+sub-tasks 2–5: (2) JavaScript keyword/arrow-function detection plus a corrected
+`require(` matcher; (3) TypeScript disambiguation via `interface`/`enum`/type-alias/
+typed-signature syntax; (4) tightened the Python annotation regex with a word
+boundary so `: string` no longer scores as Python; (5) Docker detection from
+Dockerfile directives and docker-compose structure in `_detect_tools`. All four
+target tests now pass, and I added four regression tests. Baselined `make test-unit`
+(53 failed / 375 passed) and `make check` (182 pre-existing ruff errors) on a clean
+checkout first.
+
+**Next steps:**
+Open the PR from the fork branch into `main`, fill in the PR template, request peer
+feedback in Slack, and finalize.
+
+**Blockers:**
+The repo has substantial pre-existing failures unrelated to #148 (documented in the
+PR's Notes for Reviewers). Treating "passes" as "introduces no new failures," per the
+assignment guidance. Local `make setup` DB/frontend steps still need Docker, but unit
+tests and lint/typecheck run without it once `.venv` is created.
+
+---
+
+### Check-in 2 (end of week)
+
+**PR link:** _(pending — will paste the PR URL here after creating it)_
+
+**Branch:** `fix/148-skill-extractor-js-ts-detection`
+
+**What you built:**
+Wired the previously-unused `JS_TS_KEYWORDS` signal and TypeScript-syntax detection
+into `_detect_languages`, and added Docker detection (Dockerfile directives +
+docker-compose structure) to `_detect_tools`, so idiomatic JavaScript, TypeScript,
+and Docker configs are now detected with appropriate confidence instead of being
+missed or mislabeled as Python.
+
+**Tests added or updated:**
+`tests/unit/test_skill_extractor.py` — added four regression tests:
+`test_javascript_detected_from_keywords_without_filename` (idiomatic JS with no
+filename), `test_typescript_not_misclassified_as_python` (TS syntax → TypeScript, not
+Python), `test_dockerfile_directives_detected` (Dockerfile → Docker), and
+`test_python_imports_not_flagged_as_javascript` (plain Python imports not mislabeled
+as JS). These join the four issue-defined target tests that now pass.
+
+**Self-review confirmation:** [x] make check passes  [x] make test-unit passes
+*(In this repo "passes" = my changes introduce no new failures: `make test-unit`
+went 53→49 failures — the 4 fixed targets, 0 new — and my edited files add no new
+ruff/mypy errors. Full pre-existing-failure detail is in the PR's Notes for
+Reviewers.)*
+
+**Draft PR feedback received from:** none
