@@ -232,13 +232,50 @@ class TestSkillExtractor:
     def test_skill_detection_dataclass(self):
         """Test SkillDetection dataclass structure."""
         skill = SkillDetection(
-            name="Python",
-            category="Language",
-            confidence=0.95,
-            evidence=["import statement"]
+            name="Python", category="Language", confidence=0.95, evidence=["import statement"]
         )
 
         assert skill.name == "Python"
         assert skill.category == "Language"
         assert skill.confidence == 0.95
         assert len(skill.evidence) == 1
+
+    # --- Regression tests for issue #148 (JS/TS/Docker detection) ---
+
+    def test_javascript_detected_from_keywords_without_filename(self, extractor):
+        """Idiomatic JS (const/arrow functions) is detected without a .js filename."""
+        text = "const add = (a, b) => a + b;\nconst total = add(1, 2);"
+        result = extractor.extract_skills(text)
+
+        skill_names = [s.name for s in result]
+        assert "JavaScript" in skill_names
+
+    def test_typescript_not_misclassified_as_python(self, extractor):
+        """TS-specific syntax is labeled TypeScript, not downgraded to Python.
+
+        Guards the `: string` -> `str` false positive in the Python annotation regex.
+        """
+        text = "export interface User {\n" "    id: string;\n" "    name: string;\n" "}\n"
+        result = extractor.extract_skills(text)
+
+        skill_names = [s.name for s in result]
+        assert "TypeScript" in skill_names
+        assert "Python" not in skill_names
+
+    def test_dockerfile_directives_detected(self, extractor):
+        """A Dockerfile is detected as Docker even without the literal word 'docker'."""
+        text = "FROM python:3.9\nRUN pip install fastapi\nEXPOSE 8000\n"
+        result = extractor.extract_skills(text)
+
+        skill_names = [s.name for s in result]
+        assert "Docker" in skill_names
+
+    def test_python_imports_not_flagged_as_javascript(self, extractor):
+        """Plain Python imports must not be mislabeled as JavaScript."""
+        text = "import os\nfrom typing import List\nimport numpy as np\n"
+        result = extractor.extract_skills(text)
+
+        skill_names = [s.name for s in result]
+        assert "Python" in skill_names
+        assert "JavaScript" not in skill_names
+        assert "TypeScript" not in skill_names
