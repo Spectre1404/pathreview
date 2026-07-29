@@ -165,7 +165,7 @@ tests and lint/typecheck run without it once `.venv` is created.
 
 ### Check-in 2 (end of week)
 
-**PR link:** _(pending — will paste the PR URL here after creating it)_
+**PR link:** https://github.com/Spectre1404/pathreview/pull/1
 
 **Branch:** `fix/148-skill-extractor-js-ts-detection`
 
