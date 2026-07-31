@@ -191,3 +191,50 @@ ruff/mypy errors. Full pre-existing-failure detail is in the PR's Notes for
 Reviewers.)*
 
 **Draft PR feedback received from:** none
+
+## Week 10 — Iteration & reflection
+
+### Reviewer feedback
+
+**Feedback received:** [ ] Yes  [x] No — still awaiting review
+
+**Summary of feedback:**
+No reviewer feedback came in. (Per the Summer 2026 course note, reviewer feedback
+isn't a feature this term.) PR #1 is open with no comments or reviews as of submission.
+
+**How you responded:**
+N/A — no feedback to respond to.
+
+---
+
+### Reflection
+
+**What was harder than you expected?**
+The hardest part wasn't the fix itself — it was the state of the repo. On a clean
+checkout, `make test-unit` already had 53 failing tests and `make check` reported 182
+lint errors, none related to my issue. That made "get the checks passing" ambiguous,
+so I had to baseline everything first and redefine "done" as *introducing no new
+failures*. The tooling also didn't run out of the box (no `.venv`, Docker not
+running), which I hit mid-implementation.
+
+**What did you learn about working in a large codebase?**
+The bug was one line of dead code — `JS_TS_KEYWORDS` was defined but never used. The
+work was *finding* that and understanding why detection was so narrow, not writing new
+logic. Contributing to someone else's code means matching their conventions, keeping
+the diff tightly scoped (I deliberately left an unrelated broken test alone), and
+documenting pre-existing problems instead of trying to fix the whole repo.
+
+**How did AI tools help — and where did they fall short?**
+AI sped up tracing the code and drafting tests, but the scope decisions and verifying
+every result against actual test runs were on me.
+
+**What would you do differently if you started over?**
+Set up the environment in Week 8 — creating the `.venv` and baselining the full
+test/lint state early would have surfaced the "repo is already red" reality before I
+was mid-fix, instead of discovering it in Week 9.
+
+**What are you most proud of from this module?**
+Keeping the PR honest and scoped: I documented the pre-existing failures transparently
+in "Notes for Reviewers" rather than hiding them, added four regression tests that
+lock the fix (including guards against the two false-positives I found), and resisted
+scope creep.
